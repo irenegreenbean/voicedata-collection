@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Spoken Interpretation Study</title>
+    <link rel="stylesheet" href="https://unpkg.com/jspsych@8.2.3/css/jspsych.css" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <noscript>This study requires JavaScript.</noscript>
+    <script>
+      window.addEventListener("error", function (event) {
+        window.setTimeout(function () {
+          if (document.querySelector(".jspsych-display-element")) return;
+          document.body.innerHTML = '<main class="study-card startup-error"><p class="eyebrow">Spoken interpretation study</p><h1>Study could not start</h1><p>A required study component failed to load.</p><div class="status-box">' +
+            String(event.message || "Unknown startup error").replace(/[&<>"']/g, function (character) {
+              return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[character];
+            }) + '</div><p class="muted">Please reload the page. If the problem continues, contact the study team through Prolific.</p></main>';
+        }, 0);
+      });
+    </script>
+    <script src="https://unpkg.com/jspsych@8.2.3"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-html-button-response@2.1.0"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-initialize-microphone@2.1.0"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-call-function@2.1.0"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-survey-html-form@2.1.0"></script>
+    <script src="config.js"></script>
+    <script src="recording-trial.js"></script>
+    <script src="experiment.js"></script>
+  </body>
+</html>
