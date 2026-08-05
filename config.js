@@ -8,11 +8,12 @@ window.STUDY_CONFIG = {
 
   // Replace these values before collecting real data.
   dataPipeExperimentId: "Hr9WPfedjGzI",
-  prolificCompletionCode: "REPLACE_WITH_PROLIFIC_COMPLETION_CODE",
-  prolificNoConsentUrl: "",
+  prolificCompletionCode: "CJSEBAX0",
+  prolificNoConsentUrl: "https://app.prolific.com/submissions/complete?cc=C1AGMO6R",
   privacyNoticeUrl: "",
-  // Keep false while reviewing the interface. No files are uploaded in demo mode.
-  collectionEnabled: false,
+  // Real uploads are enabled for the controlled end-to-end test.
+  // Do not recruit participants until the OSF output has been verified.
+  collectionEnabled: true,
 
   // Used only when the demo is opened directly from a local file and the browser
   // blocks loading stimuli/sample-items.json. GitHub Pages uses itemsUrl above.

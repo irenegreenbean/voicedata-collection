@@ -418,7 +418,7 @@
           <h1>Recordings saved</h1>
           <p>Thank you. Save this private withdrawal code with your records:</p>
           <p><span class="code">${escapeHtml(withdrawalCode)}</span></p>
-          <p class="muted">Use this code if you contact busra@oruk.ai about your recordings.</p>
+          <p class="muted">If you have questions or concerns about this study or your participation, contact busra@oruk.ai and include this code.</p>
         `, "Complete"),
     choices: () => fatalError ? ["Stay on this page"] : ["Return to Prolific"],
     on_finish: () => {
