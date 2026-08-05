@@ -4,6 +4,12 @@ Browser-based voice collection study for building a public benchmark that tests 
 
 Participants read short contexts and record the same target sentence using two intended interpretations. Recruitment and payment are handled through Prolific. Recordings and study metadata are uploaded through DataPipe to a private OSF project during collection.
 
+## Current status
+
+The study is deployed on GitHub Pages and the complete upload workflow has been tested successfully. A full test produced 40 audio files and two JSON files in the private OSF component. Successful-completion and no-consent Prolific paths are configured.
+
+Real uploads are currently enabled. Do not use the deployed link for casual previews, because accepted recordings will be written to OSF. The remaining launch requirements are the final privacy-notice URL and a small Prolific pilot.
+
 ## Study design
 
 - 280 sentence pairs
@@ -26,6 +32,8 @@ For each interpretation, participants:
 3. Stop the recording using the same button.
 4. Listen to the recording.
 5. Accept it or record it again.
+
+After each accepted take, the interface displays a saving screen while the recording is uploaded. A final screen asks participants to keep the window open while the session metadata is saved.
 
 The interface requests microphone access only after consent. A microphone test recording is not uploaded.
 
@@ -51,6 +59,8 @@ collectionEnabled: false
 ```
 
 Set this value to `false` for interface-only previews. Demo mode loads assignment condition 0 and does not upload recordings. Set it to `true` only for controlled upload testing and live collection. Microphone access requires HTTPS or a local web server. Opening `index.html` directly as a local file may not work in every browser.
+
+The current production-test configuration uses `collectionEnabled: true`.
 
 ## GitHub Pages deployment
 
@@ -91,21 +101,23 @@ Create separate completion paths for:
 - No consent, configured as **Request a return**
 - Incompatible device, configured as **Request a return**
 
-Add the successful completion code and no-consent return URL to `config.js`. Add the final privacy-notice URL before launch.
+The successful completion code and no-consent return URL are configured in `config.js`. Add the final privacy-notice URL before launch.
 
 ## Production launch checklist
 
 - [ ] Privacy notice is complete and linked in `config.js`
-- [ ] Prolific completion code is configured
-- [ ] No-consent return URL is configured
-- [ ] DataPipe settings match the list above
-- [ ] GitHub Pages loads the study over HTTPS
-- [ ] One complete test session reaches the private OSF project
-- [ ] The test produces 40 playable audio files and two JSON files
+- [x] Prolific completion code is configured
+- [x] No-consent return URL is configured
+- [x] DataPipe settings match the list above
+- [x] GitHub Pages loads the study over HTTPS
+- [x] One complete test session reaches the private OSF project
+- [x] The test produces 40 playable audio files and two JSON files
 - [ ] Condition assignment is recorded correctly
 - [ ] Prolific ID is absent from the public session metadata
 - [ ] Successful completion redirects back to Prolific
-- [ ] `collectionEnabled` is set to `true` only after testing
+- [x] Saving screens are shown during recording and final metadata uploads
+- [x] `collectionEnabled` is set to `true` after successful upload testing
+- [ ] A small Prolific pilot is completed before the full launch
 
 ## Audio format
 

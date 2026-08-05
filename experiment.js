@@ -108,6 +108,14 @@
     return `<a href="${escapeHtml(config.privacyNoticeUrl)}" target="_blank" rel="noopener noreferrer">Privacy notice</a>`;
   }
 
+  function savingScreen(title, message, eyebrow = "Saving") {
+    return card(`
+      <div class="saving-indicator" aria-hidden="true"></div>
+      <h2>${escapeHtml(title)}</h2>
+      <p class="lede">${escapeHtml(message)}</p>
+    `, eyebrow);
+  }
+
   function promptContent(item, interpretationId, pairPosition, totalPairs, note) {
     const n = interpretationId === "r1" ? 1 : 2;
     return `
@@ -314,16 +322,17 @@
         },
       });
       timeline.push({
-        type: jsPsychCallFunction,
-        async: true,
-        func: (done) => {
+        type: jsPsychHtmlButtonResponse,
+        stimulus: savingScreen("Saving recording…", "Please keep this window open. The next sentence will appear automatically."),
+        choices: [],
+        data: { trial_kind: "recording_upload" },
+        on_load: () => {
           const data = jsPsych.data.get().filter({ trial_kind: "recording", pair_id: item.pair_id, interpretation_id: interpretationId }).last(1).values()[0];
           uploadAudio(data, item, interpretationId, position)
-            .then(() => done({ upload_succeeded: true }))
+            .then(() => jsPsych.finishTrial({ upload_succeeded: true }))
             .catch((error) => {
               fatalError = error.message;
               jsPsych.abortExperiment("A recording could not be uploaded after three attempts. Your study has not been marked complete. Please contact the study team through Prolific.");
-              done({ upload_succeeded: false, upload_error: error.message });
             });
         },
       });
@@ -377,9 +386,11 @@
   });
 
   timeline.push({
-    type: jsPsychCallFunction,
-    async: true,
-    func: (done) => {
+    type: jsPsychHtmlButtonResponse,
+    stimulus: savingScreen("Finalizing your submission…", "Please do not close or refresh this window. You will continue automatically when everything is safely saved.", "Almost done"),
+    choices: [],
+    data: { trial_kind: "final_upload" },
+    on_load: () => {
       const metadata = {
         schema_version: 1,
         speaker_id: speakerId,
@@ -403,9 +414,9 @@
       Promise.all([
         withRetries(() => dataPipeRequest("data", { experimentID: config.dataPipeExperimentId, filename: `session_${speakerId}.json`, data: JSON.stringify(metadata, null, 2) })),
         withRetries(() => dataPipeRequest("data", { experimentID: config.dataPipeExperimentId, filename: `admin_${speakerId}.json`, data: JSON.stringify(admin, null, 2) })),
-      ]).then(() => done({ metadata_uploaded: true })).catch((error) => {
+      ]).then(() => jsPsych.finishTrial({ metadata_uploaded: true })).catch((error) => {
         fatalError = error.message;
-        done({ metadata_uploaded: false, upload_error: error.message });
+        jsPsych.finishTrial({ metadata_uploaded: false, upload_error: error.message });
       });
     },
   });
