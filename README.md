@@ -114,7 +114,8 @@ The successful completion code and no-consent return URL are configured in `conf
 - [x] The test produces 40 playable audio files and two JSON files
 - [ ] Condition assignment is recorded correctly
 - [ ] Prolific ID is absent from the public session metadata
-- [ ] Successful completion redirects back to Prolific
+- [ ] Withdrawal code is absent from the public session metadata
+- [x] Successful completion redirects back to Prolific
 - [x] Saving screens are shown during recording and final metadata uploads
 - [x] `collectionEnabled` is set to `true` after successful upload testing
 - [ ] A small Prolific pilot is completed before the full launch

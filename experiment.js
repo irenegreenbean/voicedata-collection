@@ -394,7 +394,6 @@
       const metadata = {
         schema_version: 1,
         speaker_id: speakerId,
-        withdrawal_code: withdrawalCode,
         assignment_condition: assignmentCondition,
         created_at: new Date().toISOString(),
         item_pairs: itemCount,
