@@ -10,7 +10,6 @@ window.STUDY_CONFIG = {
   dataPipeExperimentId: "Hr9WPfedjGzI",
   prolificCompletionCode: "CJSEBAX0",
   prolificNoConsentUrl: "https://app.prolific.com/submissions/complete?cc=C1AGMO6R",
-  privacyNoticeUrl: "",
   // Real uploads are enabled for the controlled end-to-end test.
   // Do not recruit participants until the OSF output has been verified.
   collectionEnabled: true,

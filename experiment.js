@@ -3,6 +3,9 @@
 
   const config = window.STUDY_CONFIG;
   const url = new URL(window.location.href);
+  const isDirectFilePreview = url.protocol === "file:";
+  const isDemoPreview = url.searchParams.get("DEMO") === "1";
+  const collectionActive = config.collectionEnabled && !isDirectFilePreview && !isDemoPreview;
   const prolific = {
     pid: url.searchParams.get("PROLIFIC_PID") || "DEMO_PID",
     studyId: url.searchParams.get("STUDY_ID") || "DEMO_STUDY",
@@ -13,6 +16,8 @@
   const speakerId = randomCode("spk");
   const withdrawalCode = randomCode("wd");
   const uploads = [];
+  const uploadJobs = [];
+  const uploadFailures = [];
   let itemCount = 0;
   let fatalError = null;
   let demographics = null;
@@ -43,7 +48,7 @@
   }
 
   async function dataPipeRequest(endpoint, body) {
-    if (!config.collectionEnabled) {
+    if (!collectionActive) {
       await new Promise((resolve) => setTimeout(resolve, 300));
       return { message: "Demo mode: upload skipped" };
     }
@@ -99,13 +104,6 @@
 
   function card(content, eyebrow = "Spoken interpretation study") {
     return `<main class="study-card"><p class="eyebrow">${escapeHtml(eyebrow)}</p>${content}</main>`;
-  }
-
-  function privacyNoticeLink() {
-    if (!config.privacyNoticeUrl) {
-      return '<a href="" aria-disabled="true" onclick="return false;">Privacy notice</a>';
-    }
-    return `<a href="${escapeHtml(config.privacyNoticeUrl)}" target="_blank" rel="noopener noreferrer">Privacy notice</a>`;
   }
 
   function savingScreen(title, message, eyebrow = "Saving") {
@@ -173,7 +171,7 @@
     if (!response.ok) throw new Error(`Could not load assignments (${response.status})`);
     assignmentPayload = await response.json();
   } catch (error) {
-    if (config.collectionEnabled) {
+    if (collectionActive) {
       document.body.innerHTML = card(`<h1>Study unavailable</h1><p>The participant assignments could not be loaded.</p><div class="status-box">${escapeHtml(error.message)}</div>`);
       return;
     }
@@ -181,7 +179,7 @@
 
   let selectedItems;
   if (assignmentPayload) {
-    if (config.collectionEnabled) {
+    if (collectionActive) {
       try {
         const result = await dataPipeRequest("condition", { experimentID: config.dataPipeExperimentId });
         assignmentCondition = Number(result.condition);
@@ -209,7 +207,7 @@
     selectedItems = shuffle(items).slice(0, Math.min(config.itemsPerParticipant, items.length));
   }
 
-  if (selectedItems.length !== config.itemsPerParticipant && config.collectionEnabled) {
+  if (selectedItems.length !== config.itemsPerParticipant && collectionActive) {
     document.body.innerHTML = card(`<h1>Study unavailable</h1><p>This assignment contains ${escapeHtml(selectedItems.length)} pairs instead of ${escapeHtml(config.itemsPerParticipant)}.</p>`);
     return;
   }
@@ -246,7 +244,7 @@
         <li>Submit the take before moving to the next prompt.</li>
       </ol>
       <p>This study requires a desktop or laptop, a working microphone, and a quiet room.</p>
-      ${config.collectionEnabled ? "" : '<div class="status-box"><strong>Demo mode:</strong> recordings will not be uploaded.</div>'}
+      ${collectionActive ? "" : '<div class="status-box"><strong>Demo mode:</strong> recordings will not be uploaded.</div>'}
     `),
     choices: ["Continue"],
   });
@@ -267,7 +265,6 @@
       <h2>Your voice, your choice</h2>
       <p class="consent-lede">I’m 18 or older, and I agree that my recordings and demographic information may be published as part of a public benchmark used to test and improve AI models.</p>
       <p class="consent-note">My Prolific ID will not be published. My Prolific reward is the only payment I will receive.</p>
-      <p class="consent-note">${privacyNoticeLink()}</p>
     `, "Quick consent"),
     choices: ["No thanks", "I agree"],
     css_classes: ["consent-trial"],
@@ -320,20 +317,11 @@
           pair_position: pairIndex + 1,
           presentation_position: position,
         },
-      });
-      timeline.push({
-        type: jsPsychHtmlButtonResponse,
-        stimulus: savingScreen("Saving recording…", "Please keep this window open. The next sentence will appear automatically."),
-        choices: [],
-        data: { trial_kind: "recording_upload" },
-        on_load: () => {
-          const data = jsPsych.data.get().filter({ trial_kind: "recording", pair_id: item.pair_id, interpretation_id: interpretationId }).last(1).values()[0];
-          uploadAudio(data, item, interpretationId, position)
-            .then(() => jsPsych.finishTrial({ upload_succeeded: true }))
-            .catch((error) => {
-              fatalError = error.message;
-              jsPsych.abortExperiment("A recording could not be uploaded after three attempts. Your study has not been marked complete. Please contact the study team through Prolific.");
-            });
+        on_finish: (data) => {
+          const job = uploadAudio(data, item, interpretationId, position).catch((error) => {
+            uploadFailures.push({ pair_id: item.pair_id, interpretation_id: interpretationId, error: error.message });
+          });
+          uploadJobs.push(job);
         },
       });
     });
@@ -391,32 +379,43 @@
     choices: [],
     data: { trial_kind: "final_upload" },
     on_load: () => {
-      const metadata = {
-        schema_version: 1,
-        speaker_id: speakerId,
-        assignment_condition: assignmentCondition,
-        created_at: new Date().toISOString(),
-        item_pairs: itemCount,
-        expected_recordings: itemCount * 2,
-        uploaded_recordings: uploads,
-        demographics,
-      };
-      const admin = {
-        speaker_id: speakerId,
-        withdrawal_code: withdrawalCode,
-        prolific_pid: prolific.pid,
-        prolific_study_id: prolific.studyId,
-        prolific_session_id: prolific.sessionId,
-        assignment_condition: assignmentCondition,
-        consented_at: jsPsych.data.get().filter({ trial_kind: "consent" }).values()[0]?.consent_timestamp,
-      };
-      Promise.all([
-        withRetries(() => dataPipeRequest("data", { experimentID: config.dataPipeExperimentId, filename: `session_${speakerId}.json`, data: JSON.stringify(metadata, null, 2) })),
-        withRetries(() => dataPipeRequest("data", { experimentID: config.dataPipeExperimentId, filename: `admin_${speakerId}.json`, data: JSON.stringify(admin, null, 2) })),
-      ]).then(() => jsPsych.finishTrial({ metadata_uploaded: true })).catch((error) => {
-        fatalError = error.message;
-        jsPsych.finishTrial({ metadata_uploaded: false, upload_error: error.message });
-      });
+      Promise.all(uploadJobs)
+        .then(() => {
+          if (uploadFailures.length) {
+            throw new Error(`${uploadFailures.length} recording upload${uploadFailures.length === 1 ? "" : "s"} failed after three attempts.`);
+          }
+          if (uploads.length !== itemCount * 2) {
+            throw new Error(`Expected ${itemCount * 2} recordings but confirmed ${uploads.length}.`);
+          }
+          const metadata = {
+            schema_version: 1,
+            speaker_id: speakerId,
+            assignment_condition: assignmentCondition,
+            created_at: new Date().toISOString(),
+            item_pairs: itemCount,
+            expected_recordings: itemCount * 2,
+            uploaded_recordings: uploads,
+            demographics,
+          };
+          const admin = {
+            speaker_id: speakerId,
+            withdrawal_code: withdrawalCode,
+            prolific_pid: prolific.pid,
+            prolific_study_id: prolific.studyId,
+            prolific_session_id: prolific.sessionId,
+            assignment_condition: assignmentCondition,
+            consented_at: jsPsych.data.get().filter({ trial_kind: "consent" }).values()[0]?.consent_timestamp,
+          };
+          return Promise.all([
+            withRetries(() => dataPipeRequest("data", { experimentID: config.dataPipeExperimentId, filename: `session_${speakerId}.json`, data: JSON.stringify(metadata, null, 2) })),
+            withRetries(() => dataPipeRequest("data", { experimentID: config.dataPipeExperimentId, filename: `admin_${speakerId}.json`, data: JSON.stringify(admin, null, 2) })),
+          ]);
+        })
+        .then(() => jsPsych.finishTrial({ metadata_uploaded: true }))
+        .catch((error) => {
+          fatalError = error.message;
+          jsPsych.finishTrial({ metadata_uploaded: false, upload_error: error.message });
+        });
     },
   });
 

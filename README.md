@@ -6,20 +6,23 @@ Participants read short contexts and record the same target sentence using two i
 
 ## Current status
 
-The study is deployed on GitHub Pages and the complete upload workflow has been tested successfully. A full test produced 40 audio files and two JSON files in the private OSF component. Successful-completion and no-consent Prolific paths are configured.
+The study is deployed on GitHub Pages and the complete upload workflow has been tested successfully. A full test produced 40 audio files and two JSON files in the private OSF component. Successful-completion and no-consent Prolific paths are configured. The study data and balanced assignments were regenerated from the revised source workbook on August 13, 2026.
 
-Real uploads are currently enabled. Do not use the deployed link for casual previews, because accepted recordings will be written to OSF. The remaining launch requirements are the final privacy-notice URL and a small Prolific pilot.
+Real uploads are currently enabled. Do not use the deployed link for casual previews, because accepted recordings will be written to OSF. The remaining launch requirement is a small Prolific pilot.
 
 ## Study design
 
 - 280 sentence pairs
-- 70 assignment conditions
+- 14 reusable assignment conditions
 - 20 pairs per participant
 - Two recordings per pair, one for each interpretation
 - 40 accepted recordings per completed participant
-- Five participants record every pair
+- Each complete cycle of 14 participants records every pair once
+- A target of 70 completed participants records every pair five times
 - Pair order and interpretation order are randomized
 - Desktop and laptop browsers only
+
+The retained exclusions are `qvs_013`, `syn_008`, and `cf_010`. The revised source workbook already omits `qvs_013`; the other two are removed during generation.
 
 The study collects age range, gender, English accent, and native English speaker status. The public benchmark will include the recordings and these demographic fields. Prolific IDs are stored separately and are not included in the public benchmark.
 
@@ -33,7 +36,7 @@ For each interpretation, participants:
 4. Listen to the recording.
 5. Accept it or record it again.
 
-After each accepted take, the interface displays a saving screen while the recording is uploaded. A final screen asks participants to keep the window open while the session metadata is saved.
+Accepted recordings upload in the background while participants continue to the next prompt. The final saving screen waits for all 40 recordings and both metadata files to be confirmed before the participant can return to Prolific.
 
 The interface requests microphone access only after consent. A microphone test recording is not uploaded.
 
@@ -58,7 +61,15 @@ The upload behavior is controlled in `config.js`:
 collectionEnabled: false
 ```
 
-Set this value to `false` for interface-only previews. Demo mode loads assignment condition 0 and does not upload recordings. Set it to `true` only for controlled upload testing and live collection. Microphone access requires HTTPS or a local web server. Opening `index.html` directly as a local file may not work in every browser.
+Set this value to `false` for interface-only previews. Demo mode loads assignment condition 0 and does not upload recordings. Set it to `true` only for controlled upload testing and live collection.
+
+To test the complete 20-pair flow from GitHub Pages without reserving a DataPipe condition or uploading files, add `?DEMO=1` to the study URL. For example:
+
+```text
+https://USERNAME.github.io/REPOSITORY/?DEMO=1
+```
+
+Opening `index.html` directly from the filesystem automatically forces a two-item demo preview, even when production collection is enabled. This prevents local browser file restrictions from appearing as a study error and ensures that a local preview never uploads data. Use GitHub Pages or a local web server to test the complete 20-pair production flow. Microphone behavior for direct-file previews still depends on the browser; HTTPS or localhost is the reliable option.
 
 The current production-test configuration uses `collectionEnabled: true`.
 
@@ -80,12 +91,14 @@ The DataPipe experiment must be connected to a private OSF project. Use these se
 - Data collection: enabled
 - Base64 data collection: enabled
 - Condition assignment: enabled
-- Number of conditions: 70
-- Session limit: 3,500 during testing and collection
+- Number of conditions: 14
+- Session limit: 5,000 for up to approximately 100 completed participants plus testing
 - Data validation: disabled
 - Psych-DS metadata production: disabled
 
 Each completed participant produces 40 audio files, one session metadata file, and one private administration file.
+
+The 14 conditions are a fixed partition of the 280 study pairs. DataPipe cycles through conditions 0–13 repeatedly. Every complete cycle adds one recording per interpretation for every pair. Recruitment can therefore be paused after 20 participants and resumed later without creating a new DataPipe experiment.
 
 ## Prolific configuration
 
@@ -101,11 +114,10 @@ Create separate completion paths for:
 - No consent, configured as **Request a return**
 - Incompatible device, configured as **Request a return**
 
-The successful completion code and no-consent return URL are configured in `config.js`. Add the final privacy-notice URL before launch.
+The successful completion code and no-consent return URL are configured in `config.js`.
 
 ## Production launch checklist
 
-- [ ] Privacy notice is complete and linked in `config.js`
 - [x] Prolific completion code is configured
 - [x] No-consent return URL is configured
 - [x] DataPipe settings match the list above
@@ -113,10 +125,10 @@ The successful completion code and no-consent return URL are configured in `conf
 - [x] One complete test session reaches the private OSF project
 - [x] The test produces 40 playable audio files and two JSON files
 - [ ] Condition assignment is recorded correctly
-- [ ] Prolific ID is absent from the public session metadata
+- [x] Prolific ID is absent from the public session metadata
 - [ ] Withdrawal code is absent from the public session metadata
 - [x] Successful completion redirects back to Prolific
-- [x] Saving screens are shown during recording and final metadata uploads
+- [x] Recordings upload in the background, with a final saving screen before completion
 - [x] `collectionEnabled` is set to `true` after successful upload testing
 - [ ] A small Prolific pilot is completed before the full launch
 
