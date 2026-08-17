@@ -95,7 +95,7 @@ Create an off-Railway, byte-for-byte backup with:
 railway run npm run backup -- /path/to/backup-directory
 ```
 
-The backup includes every original audio file, JSON metadata, and a manifest containing byte counts and SHA-256 digests.
+The backup includes every original audio file, JSON metadata, and a manifest containing byte counts and SHA-256 digests. The production PostgreSQL volume also has Railway Daily, Weekly, and Monthly backup schedules enabled, plus an initial manual snapshot.
 
 Historical DataPipe/OSF exports can be imported without recompression using:
 
