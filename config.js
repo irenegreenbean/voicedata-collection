@@ -6,16 +6,15 @@ window.STUDY_CONFIG = {
   maximumRecordingMs: 15000,
   demoCondition: 0,
 
-  // Replace these values before collecting real data.
-  dataPipeExperimentId: "Hr9WPfedjGzI",
+  // Railway serves the study and stores recordings/metadata in Postgres.
+  apiBaseUrl: "",
   prolificCompletionCode: "CJSEBAX0",
   prolificNoConsentUrl: "https://app.prolific.com/submissions/complete?cc=C1AGMO6R",
-  // Real uploads are enabled for the controlled end-to-end test.
-  // Do not recruit participants until the OSF output has been verified.
+  // Real uploads are enabled. Use ?DEMO=1 for a non-uploading preview.
   collectionEnabled: true,
 
   // Used only when the demo is opened directly from a local file and the browser
-  // blocks loading stimuli/sample-items.json. GitHub Pages uses itemsUrl above.
+  // blocks loading stimuli/sample-items.json. The deployed app uses itemsUrl above.
   demoItems: [
     {
       pair_id: "qvs_013",

@@ -2,13 +2,13 @@
 
 Browser-based voice collection study for building a public benchmark that tests how AI systems interpret spoken ambiguity.
 
-Participants read short contexts and record the same target sentence using two intended interpretations. Recruitment and payment are handled through Prolific. Recordings and study metadata are uploaded through DataPipe to a private OSF project during collection.
+Participants read short contexts and record the same target sentence using two intended interpretations. Recruitment and payment are handled through Prolific. The production app is deployed on Railway and stores recordings and study metadata directly in Railway Postgres.
 
 ## Current status
 
-The study is deployed on GitHub Pages and the complete upload workflow has been tested successfully. A full test produced 40 audio files and two JSON files in the private OSF component. Successful-completion and no-consent Prolific paths are configured. The study data and balanced assignments were regenerated from the revised source workbook on August 13, 2026.
+The Railway migration replaces the former GitHub Pages + DataPipe/OSF collection path. Historical records collected before the cutover remain in OSF; new sessions are written only to Railway Postgres.
 
-Real uploads are currently enabled. Do not use the deployed link for casual previews, because accepted recordings will be written to OSF. The remaining launch requirement is a small Prolific pilot.
+Real uploads are enabled. Do not use the deployed link for casual previews, because accepted recordings will be written to Railway. Use `?DEMO=1` for non-uploading review.
 
 ## Study design
 
@@ -63,42 +63,29 @@ collectionEnabled: false
 
 Set this value to `false` for interface-only previews. Demo mode loads assignment condition 0 and does not upload recordings. Set it to `true` only for controlled upload testing and live collection.
 
-To test the complete 20-pair flow from GitHub Pages without reserving a DataPipe condition or uploading files, add `?DEMO=1` to the study URL. For example:
+To test the complete 20-pair flow without reserving a Railway condition or uploading files, add `?DEMO=1` to the study URL. For example:
 
 ```text
-https://USERNAME.github.io/REPOSITORY/?DEMO=1
+https://YOUR-RAILWAY-DOMAIN.up.railway.app/?DEMO=1
 ```
 
-Opening `index.html` directly from the filesystem automatically forces a two-item demo preview, even when production collection is enabled. This prevents local browser file restrictions from appearing as a study error and ensures that a local preview never uploads data. Use GitHub Pages or a local web server to test the complete 20-pair production flow. Microphone behavior for direct-file previews still depends on the browser; HTTPS or localhost is the reliable option.
+Opening `index.html` directly from the filesystem automatically forces a two-item demo preview, even when production collection is enabled. This prevents local browser file restrictions from appearing as a study error and ensures that a local preview never uploads data. Use Railway or a local web server to test the complete 20-pair production flow. Microphone behavior for direct-file previews still depends on the browser; HTTPS or localhost is the reliable option.
 
 The current production-test configuration uses `collectionEnabled: true`.
 
-## GitHub Pages deployment
+## Railway deployment
 
-1. Put the repository files on the `main` branch, with `index.html` at the repository root.
-2. Open the repository's **Settings** page.
-3. Select **Pages**.
-4. Under **Build and deployment**, select **Deploy from a branch**.
-5. Select the `main` branch and `/(root)` folder.
-6. Save and wait for GitHub to display the public Pages URL.
+1. Create a Railway project from this repository.
+2. Add Railway Postgres to the project; Railway injects `DATABASE_URL` into the web service.
+3. Set `ASSIGNMENT_COUNT=14` on the web service.
+4. Generate a public domain and verify `/healthz` returns `{ "ok": true }`.
+5. Test with `?DEMO=1`, then complete a controlled production session before updating Prolific.
 
-GitHub Pages provides the HTTPS connection required for browser microphone access.
+## Railway storage
 
-## DataPipe and OSF settings
+Each completed participant produces 40 rows in `recordings`, one public session document, one private administration document, and one assignment reservation. Audio is stored as `BYTEA`; metadata is stored as `JSONB`.
 
-The DataPipe experiment must be connected to a private OSF project. Use these settings:
-
-- Data collection: enabled
-- Base64 data collection: enabled
-- Condition assignment: enabled
-- Number of conditions: 14
-- Session limit: 5,000 for up to approximately 100 completed participants plus testing
-- Data validation: disabled
-- Psych-DS metadata production: disabled
-
-Each completed participant produces 40 audio files, one session metadata file, and one private administration file.
-
-The 14 conditions are a fixed partition of the 280 study pairs. DataPipe cycles through conditions 0–13 repeatedly. Every complete cycle adds one recording per interpretation for every pair. Recruitment can therefore be paused after 20 participants and resumed later without creating a new DataPipe experiment.
+The 14 conditions are a fixed partition of the 280 study pairs. The Railway collector assigns conditions 0–13 transactionally and idempotently. Every complete cycle adds one recording per interpretation for every pair.
 
 ## Prolific configuration
 
@@ -120,9 +107,9 @@ The successful completion code and no-consent return URL are configured in `conf
 
 - [x] Prolific completion code is configured
 - [x] No-consent return URL is configured
-- [x] DataPipe settings match the list above
-- [x] GitHub Pages loads the study over HTTPS
-- [x] One complete test session reaches the private OSF project
+- [ ] Railway Postgres is attached and `/healthz` succeeds
+- [ ] Railway loads the study over HTTPS
+- [ ] One complete test session reaches Railway Postgres
 - [x] The test produces 40 playable audio files and two JSON files
 - [ ] Condition assignment is recorded correctly
 - [x] Prolific ID is absent from the public session metadata
@@ -143,4 +130,4 @@ PAIR_ID_r2_SPEAKER_ID.ext
 
 ## Privacy and collected data
 
-Do not commit collected recordings, Prolific IDs, withdrawal codes, or private administration files to this repository. Collected data should remain in the private OSF project until the prepared benchmark is ready for publication.
+Do not commit collected recordings, Prolific IDs, withdrawal codes, database exports, or private administration files to this repository. Keep historical OSF data and new Railway data private until the prepared benchmark is ready for publication.

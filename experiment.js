@@ -47,21 +47,19 @@
     return "webm";
   }
 
-  async function dataPipeRequest(endpoint, body) {
+  async function collectorRequest(endpoint, body) {
     if (!collectionActive) {
       await new Promise((resolve) => setTimeout(resolve, 300));
       return { message: "Demo mode: upload skipped" };
     }
-    if (config.dataPipeExperimentId.startsWith("REPLACE_")) {
-      throw new Error("The DataPipe experiment ID has not been configured.");
-    }
-    const response = await fetch(`https://pipe.jspsych.org/api/${endpoint}/`, {
+    const apiBaseUrl = String(config.apiBaseUrl || "").replace(/\/$/, "");
+    const response = await fetch(`${apiBaseUrl}/api/${endpoint}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
     const result = await response.json();
-    if (!response.ok || result.error) throw new Error(result.message || "Upload failed");
+    if (!response.ok || result.error) throw new Error(result.message || result.error || "Upload failed");
     return result;
   }
 
@@ -83,10 +81,16 @@
   async function uploadAudio(data, item, interpretationId, presentationPosition) {
     const mimeType = data.mime_type || "audio/webm";
     const filename = `${item.pair_id}_${interpretationId}_${speakerId}.${extensionFor(mimeType)}`;
-    await withRetries(() => dataPipeRequest("base64", {
-        experimentID: config.dataPipeExperimentId,
+    await withRetries(() => collectorRequest("audio", {
         filename,
         data: data.response,
+        speaker_id: speakerId,
+        pair_id: item.pair_id,
+        interpretation_id: interpretationId,
+        presentation_position: presentationPosition,
+        mime_type: mimeType,
+        recording_duration_ms: data.recording_duration_ms,
+        recording_attempts: data.recording_attempts,
       }));
     uploads.push({
       filename,
@@ -160,7 +164,7 @@
         <h1>Study unavailable</h1>
         <p>The item file could not be loaded.</p>
         <div class="status-box">${escapeHtml(error.message)}</div>
-        <p class="muted">If you are reviewing a local copy, serve the folder through a local web server or deploy it to GitHub Pages.</p>
+        <p class="muted">If you are reviewing a local copy, serve the folder through a local web server or use the Railway deployment.</p>
       `);
       return;
     }
@@ -181,7 +185,12 @@
   if (assignmentPayload) {
     if (collectionActive) {
       try {
-        const result = await dataPipeRequest("condition", { experimentID: config.dataPipeExperimentId });
+        const result = await collectorRequest("condition", {
+          speaker_id: speakerId,
+          prolific_pid: prolific.pid,
+          prolific_study_id: prolific.studyId,
+          prolific_session_id: prolific.sessionId,
+        });
         assignmentCondition = Number(result.condition);
       } catch (error) {
         document.body.innerHTML = card(`<h1>Study unavailable</h1><p>An assignment could not be reserved.</p><div class="status-box">${escapeHtml(error.message)}</div>`);
@@ -407,8 +416,8 @@
             consented_at: jsPsych.data.get().filter({ trial_kind: "consent" }).values()[0]?.consent_timestamp,
           };
           return Promise.all([
-            withRetries(() => dataPipeRequest("data", { experimentID: config.dataPipeExperimentId, filename: `session_${speakerId}.json`, data: JSON.stringify(metadata, null, 2) })),
-            withRetries(() => dataPipeRequest("data", { experimentID: config.dataPipeExperimentId, filename: `admin_${speakerId}.json`, data: JSON.stringify(admin, null, 2) })),
+            withRetries(() => collectorRequest("data", { speaker_id: speakerId, kind: "session", filename: `session_${speakerId}.json`, data: metadata })),
+            withRetries(() => collectorRequest("data", { speaker_id: speakerId, kind: "admin", filename: `admin_${speakerId}.json`, data: admin })),
           ]);
         })
         .then(() => jsPsych.finishTrial({ metadata_uploaded: true }))
