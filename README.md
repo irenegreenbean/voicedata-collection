@@ -120,7 +120,9 @@ Create separate completion paths for:
 - Incompatible device, configured as **Request a return**
 
 The successful completion code and no-consent return URL are configured in `config.js`.
-The current Prolific draft uses success code `C16T7Z57` and no-consent code `C19G99KE`.
+The production Prolific draft is duplicated from the original collection and uses
+success code `CJSEBAX0` and no-consent code `C1AGMO6R`, exactly as shown in its
+Prolific completion paths.
 
 ## Production launch checklist
 
