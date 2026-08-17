@@ -11,6 +11,7 @@ const assignmentCount = Number(process.env.ASSIGNMENT_COUNT || 14);
 const maxAudioBytes = Number(process.env.MAX_AUDIO_BYTES || 8 * 1024 * 1024);
 const rentAHumanApiKey = process.env.RENTAHUMAN_API_KEY || "";
 const rentAHumanBountyId = process.env.RENTAHUMAN_BOUNTY_ID || "";
+const rentAHumanAgentId = process.env.RENTAHUMAN_AGENT_ID || "";
 const studyPublicUrl = process.env.STUDY_PUBLIC_URL || "";
 const rentAHumanPollMs = Math.max(15_000, Number(process.env.RENTAHUMAN_POLL_MS || 30_000));
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -106,6 +107,9 @@ async function sendStudyLink(application) {
     await rentAHumanRequest(`/conversations/${application.conversationId}/messages`, {
       method: "POST",
       body: JSON.stringify({
+        senderType: "agent",
+        senderId: rentAHumanAgentId,
+        senderName: "Irene",
         content: `You are accepted. Start the voice-recording study here: ${studyPublicUrl}\n\nUse a desktop or laptop in a quiet room, complete all 40 recordings, and submit the rah_ completion code shown at the end as your RentAHuman evidence. Do not add ?DEMO=1 to the URL.`,
       }),
     });
@@ -150,7 +154,7 @@ async function processRentAHumanApplications() {
 }
 
 function startRentAHumanDispatcher() {
-  if (!rentAHumanApiKey || !rentAHumanBountyId || !studyPublicUrl) {
+  if (!rentAHumanApiKey || !rentAHumanBountyId || !rentAHumanAgentId || !studyPublicUrl) {
     console.log("RentAHuman dispatcher disabled: configuration incomplete");
     return;
   }
