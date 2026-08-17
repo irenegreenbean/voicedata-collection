@@ -8,8 +8,8 @@ window.STUDY_CONFIG = {
 
   // Railway serves the study and stores recordings/metadata in Postgres.
   apiBaseUrl: "",
-  prolificCompletionCode: "CJSEBAX0",
-  prolificNoConsentUrl: "https://app.prolific.com/submissions/complete?cc=C1AGMO6R",
+  prolificCompletionCode: "C16T7Z57",
+  prolificNoConsentUrl: "https://app.prolific.com/submissions/complete?cc=C19G99KE",
   // Real uploads are enabled. Use ?DEMO=1 for a non-uploading preview.
   collectionEnabled: true,
 
