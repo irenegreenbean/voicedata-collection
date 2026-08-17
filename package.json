@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "backup": "node scripts/backup-railway.mjs"
+    "backup": "node scripts/backup-railway.mjs",
+    "rentahuman:completions": "node scripts/list-rentahuman-completions.mjs"
   },
   "engines": {
     "node": ">=20"

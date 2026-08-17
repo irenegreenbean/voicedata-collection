@@ -2,7 +2,7 @@
 
 Browser-based voice collection study for building a public benchmark that tests how AI systems interpret spoken ambiguity.
 
-Participants read short contexts and record the same target sentence using two intended interpretations. Recruitment and payment are handled through Prolific. The production app is deployed on Railway and stores recordings and study metadata directly in Railway Postgres.
+Participants read short contexts and record the same target sentence using two intended interpretations. Recruitment and payment are handled through RentAHuman. The production app is deployed on Railway and stores recordings and study metadata directly in Railway Postgres.
 
 ## Current status
 
@@ -24,7 +24,7 @@ Real uploads are enabled. Do not use the deployed link for casual previews, beca
 
 The retained exclusions are `qvs_013`, `syn_008`, and `cf_010`. The revised source workbook already omits `qvs_013`; the other two are removed during generation.
 
-The study collects age range, gender, English accent, and native English speaker status. The public benchmark will include the recordings and these demographic fields. Prolific IDs are stored separately and are not included in the public benchmark.
+The study collects age range, gender, English accent, and native English speaker status. The public benchmark will include the recordings and these demographic fields. RentAHuman identifiers are stored separately and are not included in the public benchmark.
 
 ## Participant experience
 
@@ -36,7 +36,7 @@ For each interpretation, participants:
 4. Listen to the recording.
 5. Accept it or record it again.
 
-Accepted recordings upload in the background while participants continue to the next prompt. The final saving screen waits for all 40 recordings and both metadata files to be confirmed before the participant can return to Prolific.
+Accepted recordings upload in the background while participants continue to the next prompt. The final saving screen waits for all 40 recordings and both metadata files to be confirmed before issuing a unique RentAHuman completion code.
 
 The interface requests microphone access only after consent. A microphone test recording is not uploaded.
 
@@ -79,7 +79,7 @@ The current production-test configuration uses `collectionEnabled: true`.
 2. Add Railway Postgres to the project; Railway injects `DATABASE_URL` into the web service.
 3. Set `ASSIGNMENT_COUNT=14` on the web service.
 4. Generate a public domain and verify `/healthz` returns `{ "ok": true }`.
-5. Test with `?DEMO=1`, then complete a controlled production session before updating Prolific.
+5. Test with `?DEMO=1`, then complete a controlled production session before posting the RentAHuman bounty.
 
 ## Railway storage
 
@@ -105,31 +105,31 @@ railway run node scripts/import-osf.mjs /path/to/downloaded-osf-component
 
 The 14 conditions are a fixed partition of the 280 study pairs. The Railway collector assigns conditions 0–13 transactionally and idempotently. Every complete cycle adds one recording per interpretation for every pair.
 
-## Prolific configuration
+## RentAHuman configuration
 
-The Prolific study should use URL parameters so the study receives:
+Post one multi-worker bounty with the production Railway URL and `spotsAvailable`
+set to the desired collection size. After Railway confirms all 40 recordings and
+both metadata documents, the experiment displays a unique `rah_…` completion code.
+Workers submit that code as text evidence on the bounty. The private administration
+record stores the code and RentAHuman username for validation before payment.
 
-- `PROLIFIC_PID`
-- `STUDY_ID`
-- `SESSION_ID`
+List completed workers and their valid codes with:
 
-The production study has exactly one completion path. After Railway confirms all
-40 recordings and both metadata documents, the experiment redirects to Prolific
-with completion code `CJSEBAX0`. Participants who decline consent are instructed
-to return the study without completing it and are not shown a completion code.
+```bash
+railway run npm run rentahuman:completions
+```
 
 ## Production launch checklist
 
-- [x] Prolific completion code is configured
-- [x] The Prolific draft has exactly one completion path
+- [x] Unique RentAHuman completion codes are issued only after a complete Railway save
 - [x] Railway Postgres is attached and `/healthz` succeeds
 - [x] Railway loads the study over HTTPS
 - [x] One complete test session reaches Railway Postgres
 - [x] The test produces 40 playable audio files and two JSON files
 - [x] Condition assignment is recorded correctly
-- [x] Prolific ID is absent from the public session metadata
+- [x] RentAHuman ID is absent from the public session metadata
 - [ ] Withdrawal code is absent from the public session metadata
-- [x] Successful completion redirects back to Prolific
+- [x] Successful completion shows the RentAHuman text-evidence code
 - [x] Recordings upload in the background, with a final saving screen before completion
 - [x] `collectionEnabled` is set to `true` after successful upload testing
 - [ ] A small Prolific pilot is completed before the full launch

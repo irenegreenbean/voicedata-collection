@@ -6,15 +6,17 @@
   const isDirectFilePreview = url.protocol === "file:";
   const isDemoPreview = url.searchParams.get("DEMO") === "1";
   const collectionActive = config.collectionEnabled && !isDirectFilePreview && !isDemoPreview;
-  const prolific = {
-    pid: url.searchParams.get("PROLIFIC_PID") || "DEMO_PID",
-    studyId: url.searchParams.get("STUDY_ID") || "DEMO_STUDY",
-    sessionId: url.searchParams.get("SESSION_ID") || crypto.randomUUID(),
+  const recruitment = {
+    platform: "rentahuman",
+    workerId: url.searchParams.get("RAH_WORKER_ID") || "",
+    taskId: url.searchParams.get("RAH_BOUNTY_ID") || "",
+    sessionId: crypto.randomUUID(),
   };
 
   const randomCode = (prefix) => `${prefix}_${crypto.randomUUID().replaceAll("-", "").slice(0, 10)}`;
   const speakerId = randomCode("spk");
   const withdrawalCode = randomCode("wd");
+  const completionCode = randomCode("rah");
   const uploads = [];
   const uploadJobs = [];
   const uploadFailures = [];
@@ -189,9 +191,10 @@
       try {
         const result = await collectorRequest("condition", {
           speaker_id: speakerId,
-          prolific_pid: prolific.pid,
-          prolific_study_id: prolific.studyId,
-          prolific_session_id: prolific.sessionId,
+          recruitment_platform: recruitment.platform,
+          recruitment_worker_id: recruitment.workerId,
+          recruitment_task_id: recruitment.taskId,
+          recruitment_session_id: recruitment.sessionId,
         });
         assignmentCondition = Number(result.condition);
         uploadToken = result.upload_token;
@@ -236,8 +239,8 @@
 
   jsPsych.data.addProperties({
     speaker_id: speakerId,
-    study_id: prolific.studyId,
-    session_id: prolific.sessionId,
+    recruitment_platform: recruitment.platform,
+    recruitment_session_id: recruitment.sessionId,
     assignment_condition: assignmentCondition,
   });
 
@@ -276,7 +279,7 @@
       <div class="consent-mark" aria-hidden="true">♪</div>
       <h2>Your voice, your choice</h2>
       <p class="consent-lede">I’m 18 or older, and I agree that my recordings and demographic information may be published as part of a public benchmark used to test and improve AI models.</p>
-      <p class="consent-note">My Prolific ID will not be published. My Prolific reward is the only payment I will receive.</p>
+      <p class="consent-note">My RentAHuman identifier will not be published. My RentAHuman bounty payment is the only payment I will receive.</p>
     `, "Quick consent"),
     choices: ["No thanks", "I agree"],
     css_classes: ["consent-trial"],
@@ -285,10 +288,23 @@
       data.consent = data.response === 1;
       data.consent_timestamp = new Date().toISOString();
       if (!data.consent) {
-        jsPsych.abortExperiment('You chose not to participate. Please return your submission on Prolific by selecting “Stop without completing.”');
+        jsPsych.abortExperiment("You chose not to participate. Please return to RentAHuman and withdraw your application or submission.");
       }
     },
   });
+
+  if (!recruitment.workerId) {
+    timeline.push({
+      type: jsPsychSurveyHtmlForm,
+      preamble: card(`<h2>RentAHuman account</h2><p>Enter your RentAHuman username or profile ID so the research team can match your completed recording session to your bounty submission.</p>`, "Participant ID"),
+      html: `<div class="field"><label for="rentahuman_worker_id">RentAHuman username or profile ID</label><input id="rentahuman_worker_id" name="rentahuman_worker_id" type="text" required minlength="2" maxlength="120" autocomplete="off"></div>`,
+      button_label: "Continue",
+      data: { trial_kind: "rentahuman_identity" },
+      on_finish: (data) => {
+        recruitment.workerId = String(data.response.rentahuman_worker_id || "").trim();
+      },
+    });
+  }
 
   timeline.push({
     type: jsPsychInitializeMicrophone,
@@ -408,9 +424,11 @@
           const admin = {
             speaker_id: speakerId,
             withdrawal_code: withdrawalCode,
-            prolific_pid: prolific.pid,
-            prolific_study_id: prolific.studyId,
-            prolific_session_id: prolific.sessionId,
+            completion_code: completionCode,
+            recruitment_platform: recruitment.platform,
+            recruitment_worker_id: recruitment.workerId,
+            recruitment_task_id: recruitment.taskId,
+            recruitment_session_id: recruitment.sessionId,
             assignment_condition: assignmentCondition,
             consented_at: jsPsych.data.get().filter({ trial_kind: "consent" }).values()[0]?.consent_timestamp,
           };
@@ -434,17 +452,14 @@
       : card(`
           <h1>Recordings saved</h1>
           <p>All 40 recordings and study data have been saved to Railway.</p>
-          <p><strong>Click “Return to Prolific” below. Prolific will submit your single completion code automatically.</strong></p>
+          <p><strong>Return to the RentAHuman bounty and submit this completion code as text evidence:</strong></p>
+          <p><span class="code">${escapeHtml(completionCode)}</span></p>
+          <p>Payment can be approved after this code is matched to the completed Railway session.</p>
           <p>Thank you. Save this private withdrawal code with your records:</p>
           <p><span class="code">${escapeHtml(withdrawalCode)}</span></p>
           <p class="muted">If you have questions or concerns about this study or your participation, contact busra@oruk.ai and include this code.</p>
         `, "Complete"),
-    choices: () => fatalError ? ["Stay on this page"] : ["Return to Prolific"],
-    on_finish: () => {
-      if (fatalError) return;
-      if (config.prolificCompletionCode.startsWith("REPLACE_")) return;
-      window.location.assign(`https://app.prolific.com/submissions/complete?cc=${encodeURIComponent(config.prolificCompletionCode)}`);
-    },
+    choices: () => fatalError ? ["Stay on this page"] : ["Finish"],
   });
 
   jsPsych.run(timeline);

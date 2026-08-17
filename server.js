@@ -28,6 +28,10 @@ async function initializeDatabase() {
       prolific_pid TEXT,
       prolific_study_id TEXT,
       prolific_session_id TEXT,
+      recruitment_platform TEXT,
+      recruitment_worker_id TEXT,
+      recruitment_task_id TEXT,
+      recruitment_session_id TEXT,
       upload_token_hash TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
@@ -57,6 +61,10 @@ async function initializeDatabase() {
     );
   `);
   await pool.query(`ALTER TABLE ambiguity_assignment_reservations ADD COLUMN IF NOT EXISTS upload_token_hash TEXT`);
+  await pool.query(`ALTER TABLE ambiguity_assignment_reservations ADD COLUMN IF NOT EXISTS recruitment_platform TEXT`);
+  await pool.query(`ALTER TABLE ambiguity_assignment_reservations ADD COLUMN IF NOT EXISTS recruitment_worker_id TEXT`);
+  await pool.query(`ALTER TABLE ambiguity_assignment_reservations ADD COLUMN IF NOT EXISTS recruitment_task_id TEXT`);
+  await pool.query(`ALTER TABLE ambiguity_assignment_reservations ADD COLUMN IF NOT EXISTS recruitment_session_id TEXT`);
 }
 
 function text(value, max = 200) {
@@ -91,9 +99,9 @@ app.post("/api/condition", async (req, res, next) => {
       condition = count.rows[0].count % assignmentCount;
       await client.query(
         `INSERT INTO ambiguity_assignment_reservations
-          (speaker_id, condition, prolific_pid, prolific_study_id, prolific_session_id, upload_token_hash)
-         VALUES ($1,$2,$3,$4,$5,$6)`,
-        [speakerId, condition, text(req.body.prolific_pid, 120), text(req.body.prolific_study_id, 120), text(req.body.prolific_session_id, 120), uploadTokenHash],
+          (speaker_id, condition, recruitment_platform, recruitment_worker_id, recruitment_task_id, recruitment_session_id, upload_token_hash)
+         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+        [speakerId, condition, text(req.body.recruitment_platform, 40), text(req.body.recruitment_worker_id, 120), text(req.body.recruitment_task_id, 120), text(req.body.recruitment_session_id, 120), uploadTokenHash],
       );
     } else {
       await client.query(
