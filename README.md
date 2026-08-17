@@ -85,6 +85,24 @@ The current production-test configuration uses `collectionEnabled: true`.
 
 Each completed participant produces 40 rows in `ambiguity_recordings`, one public session document, one private administration document, and one assignment reservation. Audio is stored as `BYTEA`; metadata is stored as `JSONB`.
 
+Recordings are stored as the exact bytes produced by the participant's browser. The collector computes and stores a SHA-256 digest for every file and does not decode, transcode, resample, or recompress audio. The production Postgres volume is 50 GB; the experiment's 15-second per-recording limit and 8 MB server-side file limit leave ample capacity for the planned collection.
+
+The server issues a cryptographically random upload token with each assignment. Audio and metadata writes require that token, and final session metadata is accepted only after the expected number of audio files exists in Postgres.
+
+Create an off-Railway, byte-for-byte backup with:
+
+```bash
+railway run npm run backup -- /path/to/backup-directory
+```
+
+The backup includes every original audio file, JSON metadata, and a manifest containing byte counts and SHA-256 digests.
+
+Historical DataPipe/OSF exports can be imported without recompression using:
+
+```bash
+railway run node scripts/import-osf.mjs /path/to/downloaded-osf-component
+```
+
 The 14 conditions are a fixed partition of the 280 study pairs. The Railway collector assigns conditions 0–13 transactionally and idempotently. Every complete cycle adds one recording per interpretation for every pair.
 
 ## Prolific configuration

@@ -28,6 +28,7 @@ async function initializeDatabase() {
       prolific_pid TEXT,
       prolific_study_id TEXT,
       prolific_session_id TEXT,
+      upload_token_hash TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
     CREATE TABLE IF NOT EXISTS ambiguity_recordings (
@@ -55,6 +56,7 @@ async function initializeDatabase() {
       UNIQUE (speaker_id, kind)
     );
   `);
+  await pool.query(`ALTER TABLE ambiguity_assignment_reservations ADD COLUMN IF NOT EXISTS upload_token_hash TEXT`);
 }
 
 function text(value, max = 200) {
@@ -74,6 +76,8 @@ app.post("/api/condition", async (req, res, next) => {
   const speakerId = text(req.body?.speaker_id, 80);
   if (!speakerId) return res.status(400).json({ error: "speaker_id is required" });
   const client = await pool.connect();
+  const uploadToken = crypto.randomBytes(32).toString("base64url");
+  const uploadTokenHash = crypto.createHash("sha256").update(uploadToken).digest("hex");
   try {
     await client.query("BEGIN");
     await client.query("SELECT pg_advisory_xact_lock(7319462)");
@@ -87,13 +91,18 @@ app.post("/api/condition", async (req, res, next) => {
       condition = count.rows[0].count % assignmentCount;
       await client.query(
         `INSERT INTO ambiguity_assignment_reservations
-          (speaker_id, condition, prolific_pid, prolific_study_id, prolific_session_id)
-         VALUES ($1,$2,$3,$4,$5)`,
-        [speakerId, condition, text(req.body.prolific_pid, 120), text(req.body.prolific_study_id, 120), text(req.body.prolific_session_id, 120)],
+          (speaker_id, condition, prolific_pid, prolific_study_id, prolific_session_id, upload_token_hash)
+         VALUES ($1,$2,$3,$4,$5,$6)`,
+        [speakerId, condition, text(req.body.prolific_pid, 120), text(req.body.prolific_study_id, 120), text(req.body.prolific_session_id, 120), uploadTokenHash],
+      );
+    } else {
+      await client.query(
+        "UPDATE ambiguity_assignment_reservations SET upload_token_hash = $2 WHERE speaker_id = $1",
+        [speakerId, uploadTokenHash],
       );
     }
     await client.query("COMMIT");
-    res.json({ condition });
+    res.json({ condition, upload_token: uploadToken });
   } catch (error) {
     await client.query("ROLLBACK").catch(() => {});
     next(error);
@@ -101,6 +110,18 @@ app.post("/api/condition", async (req, res, next) => {
     client.release();
   }
 });
+
+async function authorizedSpeaker(speakerId, uploadToken) {
+  if (!speakerId || !uploadToken) return false;
+  const hash = crypto.createHash("sha256").update(String(uploadToken)).digest("hex");
+  const result = await pool.query(
+    "SELECT upload_token_hash FROM ambiguity_assignment_reservations WHERE speaker_id = $1",
+    [speakerId],
+  );
+  const expected = result.rows[0]?.upload_token_hash;
+  if (!expected || expected.length !== hash.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(hash));
+}
 
 app.post("/api/audio", async (req, res, next) => {
   const speakerId = text(req.body?.speaker_id, 80);
@@ -110,6 +131,9 @@ app.post("/api/audio", async (req, res, next) => {
   const mimeType = text(req.body?.mime_type, 100) || "audio/webm";
   if (!speakerId || !filename || !pairId || !interpretationId || !req.body?.data) {
     return res.status(400).json({ error: "Incomplete recording payload" });
+  }
+  if (!(await authorizedSpeaker(speakerId, req.body.upload_token))) {
+    return res.status(403).json({ error: "Invalid upload session" });
   }
   const audio = Buffer.from(String(req.body.data), "base64");
   if (!audio.length || audio.length > maxAudioBytes) {
@@ -140,7 +164,20 @@ app.post("/api/data", async (req, res, next) => {
   if (!speakerId || !filename || !["session", "admin"].includes(kind) || typeof req.body?.data !== "object") {
     return res.status(400).json({ error: "Invalid study document" });
   }
+  if (!(await authorizedSpeaker(speakerId, req.body.upload_token))) {
+    return res.status(403).json({ error: "Invalid upload session" });
+  }
   try {
+    if (kind === "session") {
+      const expected = Number(req.body.data.expected_recordings);
+      const recorded = await pool.query(
+        "SELECT COUNT(*)::INTEGER AS count FROM ambiguity_recordings WHERE speaker_id = $1",
+        [speakerId],
+      );
+      if (!expected || recorded.rows[0].count !== expected) {
+        return res.status(409).json({ error: `Expected ${expected || 0} recordings; found ${recorded.rows[0].count}` });
+      }
+    }
     await pool.query(
       `INSERT INTO ambiguity_study_documents (speaker_id, kind, filename, payload)
        VALUES ($1,$2,$3,$4)

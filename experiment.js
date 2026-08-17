@@ -22,6 +22,7 @@
   let fatalError = null;
   let demographics = null;
   let assignmentCondition = null;
+  let uploadToken = null;
 
   function escapeHtml(value) {
     return String(value ?? "")
@@ -84,6 +85,7 @@
     await withRetries(() => collectorRequest("audio", {
         filename,
         data: data.response,
+        upload_token: uploadToken,
         speaker_id: speakerId,
         pair_id: item.pair_id,
         interpretation_id: interpretationId,
@@ -192,6 +194,7 @@
           prolific_session_id: prolific.sessionId,
         });
         assignmentCondition = Number(result.condition);
+        uploadToken = result.upload_token;
       } catch (error) {
         document.body.innerHTML = card(`<h1>Study unavailable</h1><p>An assignment could not be reserved.</p><div class="status-box">${escapeHtml(error.message)}</div>`);
         return;
@@ -416,8 +419,8 @@
             consented_at: jsPsych.data.get().filter({ trial_kind: "consent" }).values()[0]?.consent_timestamp,
           };
           return Promise.all([
-            withRetries(() => collectorRequest("data", { speaker_id: speakerId, kind: "session", filename: `session_${speakerId}.json`, data: metadata })),
-            withRetries(() => collectorRequest("data", { speaker_id: speakerId, kind: "admin", filename: `admin_${speakerId}.json`, data: admin })),
+            withRetries(() => collectorRequest("data", { speaker_id: speakerId, upload_token: uploadToken, kind: "session", filename: `session_${speakerId}.json`, data: metadata })),
+            withRetries(() => collectorRequest("data", { speaker_id: speakerId, upload_token: uploadToken, kind: "admin", filename: `admin_${speakerId}.json`, data: admin })),
           ]);
         })
         .then(() => jsPsych.finishTrial({ metadata_uploaded: true }))
