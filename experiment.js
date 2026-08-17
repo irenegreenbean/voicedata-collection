@@ -448,7 +448,7 @@
   timeline.push({
     type: jsPsychHtmlButtonResponse,
     stimulus: () => fatalError
-      ? card(`<h2>Final save failed</h2><div class="status-box">${escapeHtml(fatalError)}</div><p>Please keep this page open and contact the study team through Prolific.</p>`, "Action needed")
+      ? card(`<h2>Final save failed</h2><div class="status-box">${escapeHtml(fatalError)}</div><p>Please keep this page open and contact the study team through RentAHuman.</p>`, "Action needed")
       : card(`
           <h1>Recordings saved</h1>
           <p>All 40 recordings and study data have been saved to Railway.</p>
