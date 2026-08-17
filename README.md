@@ -83,7 +83,7 @@ The current production-test configuration uses `collectionEnabled: true`.
 
 ## Railway storage
 
-Each completed participant produces 40 rows in `recordings`, one public session document, one private administration document, and one assignment reservation. Audio is stored as `BYTEA`; metadata is stored as `JSONB`.
+Each completed participant produces 40 rows in `ambiguity_recordings`, one public session document, one private administration document, and one assignment reservation. Audio is stored as `BYTEA`; metadata is stored as `JSONB`.
 
 The 14 conditions are a fixed partition of the 280 study pairs. The Railway collector assigns conditions 0–13 transactionally and idempotently. Every complete cycle adds one recording per interpretation for every pair.
 

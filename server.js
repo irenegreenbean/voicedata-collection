@@ -21,7 +21,7 @@ app.use(express.json({ limit: "12mb" }));
 
 async function initializeDatabase() {
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS assignment_reservations (
+    CREATE TABLE IF NOT EXISTS ambiguity_assignment_reservations (
       id BIGSERIAL PRIMARY KEY,
       speaker_id TEXT NOT NULL UNIQUE,
       condition INTEGER NOT NULL,
@@ -30,7 +30,7 @@ async function initializeDatabase() {
       prolific_session_id TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
-    CREATE TABLE IF NOT EXISTS recordings (
+    CREATE TABLE IF NOT EXISTS ambiguity_recordings (
       id BIGSERIAL PRIMARY KEY,
       speaker_id TEXT NOT NULL,
       filename TEXT NOT NULL UNIQUE,
@@ -44,8 +44,8 @@ async function initializeDatabase() {
       audio BYTEA NOT NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
-    CREATE INDEX IF NOT EXISTS recordings_speaker_idx ON recordings (speaker_id);
-    CREATE TABLE IF NOT EXISTS study_documents (
+    CREATE INDEX IF NOT EXISTS ambiguity_recordings_speaker_idx ON ambiguity_recordings (speaker_id);
+    CREATE TABLE IF NOT EXISTS ambiguity_study_documents (
       id BIGSERIAL PRIMARY KEY,
       speaker_id TEXT NOT NULL,
       kind TEXT NOT NULL CHECK (kind IN ('session', 'admin')),
@@ -78,15 +78,15 @@ app.post("/api/condition", async (req, res, next) => {
     await client.query("BEGIN");
     await client.query("SELECT pg_advisory_xact_lock(7319462)");
     const existing = await client.query(
-      "SELECT condition FROM assignment_reservations WHERE speaker_id = $1",
+      "SELECT condition FROM ambiguity_assignment_reservations WHERE speaker_id = $1",
       [speakerId],
     );
     let condition = existing.rows[0]?.condition;
     if (condition === undefined) {
-      const count = await client.query("SELECT COUNT(*)::INTEGER AS count FROM assignment_reservations");
+      const count = await client.query("SELECT COUNT(*)::INTEGER AS count FROM ambiguity_assignment_reservations");
       condition = count.rows[0].count % assignmentCount;
       await client.query(
-        `INSERT INTO assignment_reservations
+        `INSERT INTO ambiguity_assignment_reservations
           (speaker_id, condition, prolific_pid, prolific_study_id, prolific_session_id)
          VALUES ($1,$2,$3,$4,$5)`,
         [speakerId, condition, text(req.body.prolific_pid, 120), text(req.body.prolific_study_id, 120), text(req.body.prolific_session_id, 120)],
@@ -118,7 +118,7 @@ app.post("/api/audio", async (req, res, next) => {
   const sha256 = crypto.createHash("sha256").update(audio).digest("hex");
   try {
     await pool.query(
-      `INSERT INTO recordings
+      `INSERT INTO ambiguity_recordings
         (speaker_id, filename, pair_id, interpretation_id, presentation_position, mime_type, recording_duration_ms, recording_attempts, sha256, audio)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
        ON CONFLICT (filename) DO UPDATE SET
@@ -142,7 +142,7 @@ app.post("/api/data", async (req, res, next) => {
   }
   try {
     await pool.query(
-      `INSERT INTO study_documents (speaker_id, kind, filename, payload)
+      `INSERT INTO ambiguity_study_documents (speaker_id, kind, filename, payload)
        VALUES ($1,$2,$3,$4)
        ON CONFLICT (speaker_id, kind) DO UPDATE SET
          filename = EXCLUDED.filename, payload = EXCLUDED.payload, created_at = NOW()`,
