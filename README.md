@@ -113,26 +113,20 @@ The Prolific study should use URL parameters so the study receives:
 - `STUDY_ID`
 - `SESSION_ID`
 
-Create separate completion paths for:
-
-- Successful completion
-- No consent, configured as **Request a return**
-- Incompatible device, configured as **Request a return**
-
-The successful completion code and no-consent return URL are configured in `config.js`.
-The production Prolific draft is duplicated from the original collection and uses
-success code `CJSEBAX0` and no-consent code `C1AGMO6R`, exactly as shown in its
-Prolific completion paths.
+The production study has exactly one completion path. After Railway confirms all
+40 recordings and both metadata documents, the experiment redirects to Prolific
+with completion code `CJSEBAX0`. Participants who decline consent are instructed
+to return the study without completing it and are not shown a completion code.
 
 ## Production launch checklist
 
 - [x] Prolific completion code is configured
-- [x] No-consent return URL is configured
-- [ ] Railway Postgres is attached and `/healthz` succeeds
-- [ ] Railway loads the study over HTTPS
-- [ ] One complete test session reaches Railway Postgres
+- [x] The Prolific draft has exactly one completion path
+- [x] Railway Postgres is attached and `/healthz` succeeds
+- [x] Railway loads the study over HTTPS
+- [x] One complete test session reaches Railway Postgres
 - [x] The test produces 40 playable audio files and two JSON files
-- [ ] Condition assignment is recorded correctly
+- [x] Condition assignment is recorded correctly
 - [x] Prolific ID is absent from the public session metadata
 - [ ] Withdrawal code is absent from the public session metadata
 - [x] Successful completion redirects back to Prolific

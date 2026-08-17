@@ -285,10 +285,6 @@
       data.consent = data.response === 1;
       data.consent_timestamp = new Date().toISOString();
       if (!data.consent) {
-        if (config.prolificNoConsentUrl) {
-          window.location.assign(config.prolificNoConsentUrl);
-          return;
-        }
         jsPsych.abortExperiment('You chose not to participate. Please return your submission on Prolific by selecting “Stop without completing.”');
       }
     },
@@ -437,6 +433,8 @@
       ? card(`<h2>Final save failed</h2><div class="status-box">${escapeHtml(fatalError)}</div><p>Please keep this page open and contact the study team through Prolific.</p>`, "Action needed")
       : card(`
           <h1>Recordings saved</h1>
+          <p>All 40 recordings and study data have been saved to Railway.</p>
+          <p><strong>Click “Return to Prolific” below. Prolific will submit your single completion code automatically.</strong></p>
           <p>Thank you. Save this private withdrawal code with your records:</p>
           <p><span class="code">${escapeHtml(withdrawalCode)}</span></p>
           <p class="muted">If you have questions or concerns about this study or your participation, contact busra@oruk.ai and include this code.</p>
